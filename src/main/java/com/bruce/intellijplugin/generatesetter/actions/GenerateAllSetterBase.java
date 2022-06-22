@@ -267,6 +267,9 @@ public abstract class GenerateAllSetterBase extends PsiElementBaseIntentionActio
                                           Set<String> newImportList, boolean hasGuava, GetInfo info) {
         StringBuilder builder = new StringBuilder();
         builder.append(splitText);
+        if (generateAllHandler.forAccessor()) {
+            builder.append(generateName);
+        }
         for (PsiMethod method : methodList) {
             String setterMethodNamePrefix =
                     method.getName().startsWith(SET_SETTER_PREFIX)
@@ -290,8 +293,11 @@ public abstract class GenerateAllSetterBase extends PsiElementBaseIntentionActio
                         String getTypeText = returnType.getCanonicalText();
                         String getMethodText = info.getParamName() + "."
                                 + s.getName() + "()";
-                        String startText = generateName + "." + method.getName()
+                        String startText = "." + method.getName()
                                 + "(";
+                        if (!generateAllHandler.forAccessor()) {
+                            startText = generateName + startText;
+                        }
                         builder.append(generateSetterString(setTypeText,
                                 getTypeText, getMethodText, startText));
                     }
@@ -305,28 +311,29 @@ public abstract class GenerateAllSetterBase extends PsiElementBaseIntentionActio
         return builder.toString();
     }
 
-    private static String generateSetterString(String setTypeText,
+    private String generateSetterString(String setTypeText,
                                                String getTypeText, String getMethodText, String startText) {
+        String tail = (!generateAllHandler.forAccessor() ? ";" : "");
         if (setTypeText.equals(getTypeText)) {
-            return startText + getMethodText + ");";
+            return startText + getMethodText + ")" + tail;
         } else {
             if (setTypeText.equals("java.lang.String")) {
-                return startText + "String.valueOf(" + getMethodText + "));";
+                return startText + "String.valueOf(" + getMethodText + "))" + tail;
             } else if (setTypeText.equals("java.util.Date")
                     && checkMethodIsLong(getTypeText)) {
-                return startText + "new Date(" + getMethodText + "));";
+                return startText + "new Date(" + getMethodText + "))" + tail;
             } else if (checkMethodIsLong(setTypeText)
                     && getTypeText.equals("java.util.Date")) {
-                return startText + getMethodText + ".getTime());";
+                return startText + getMethodText + ".getTime())" + tail;
             } else if (setTypeText.equals("java.sql.Timestamp")
                     && checkMethodIsLong(getTypeText)) {
-                return startText + "new Timestamp(" + getMethodText + "));";
+                return startText + "new Timestamp(" + getMethodText + "))" + tail;
             } else if (checkMethodIsLong(setTypeText)
                     && getTypeText.equals("java.sql.Timestamp")) {
-                return startText + getMethodText + ".getTime());";
+                return startText + getMethodText + ".getTime())" + tail;
             }
         }
-        return startText + getMethodText + ");";
+        return startText + getMethodText + ")" + tail;
     }
 
     private static boolean checkMethodIsLong(String getMethodText) {
@@ -449,7 +456,11 @@ public abstract class GenerateAllSetterBase extends PsiElementBaseIntentionActio
         PsiParameter[] parameters = method.getParameterList().getParameters();
 
         if (!generateAllHandler.shouldAddDefaultValue()) {
-            builder.append(generateAllHandler.formatLine(generateName + "." + method.getName() + "();"));
+            String line = "." + method.getName() + "()";
+            if (!generateAllHandler.forAccessor()) {
+                line = generateName + line + ";";
+            }
+            builder.append(generateAllHandler.formatLine(line));
             return;
         }
 
@@ -579,7 +590,7 @@ public abstract class GenerateAllSetterBase extends PsiElementBaseIntentionActio
         }
         Boolean validAsLocalVariableWithSetterOrGetterMethod = isValidAsLocalVariableWithSetterOrGetterMethod(element, setter);
         if (validAsLocalVariableWithSetterOrGetterMethod) {
-            return validAsLocalVariableWithSetterOrGetterMethod;
+            return !generateAllHandler.isFromMethod();
         }
         if (generateAllHandler.isSetter() && generateAllHandler.isFromMethod()) {
             return isValidAsMethodWithSetterMethod(element);

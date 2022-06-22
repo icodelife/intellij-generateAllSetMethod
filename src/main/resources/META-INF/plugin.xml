@@ -142,6 +142,10 @@
         </intentionAction>
 
         <intentionAction>
+            <className>com.bruce.intellijplugin.generatesetter.actions.GenerateAccessorsSetterGetterFromFunctionAction</className>
+        </intentionAction>
+
+        <intentionAction>
             <className>com.bruce.intellijplugin.generatesetter.actions.GenerateAllGetterAction</className>
         </intentionAction>
     </extensions>
